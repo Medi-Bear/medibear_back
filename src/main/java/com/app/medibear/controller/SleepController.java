@@ -1,8 +1,8 @@
-package com.example.sleep.controller;
+package com.app.medibear.controller;
 
-import com.example.sleep.dto.UserInputRequest;
-import com.example.sleep.model.SleepData;
-import com.example.sleep.service.SleepService;
+import com.app.medibear.dto.UserInputRequest;
+import com.app.medibear.model.SleepData;
+import com.app.medibear.service.SleepService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
