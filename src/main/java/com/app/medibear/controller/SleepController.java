@@ -5,7 +5,9 @@ import com.app.medibear.model.SleepData;
 import com.app.medibear.service.SleepService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,6 +20,7 @@ public class SleepController {
         this.sleepService = sleepService;
     }
 
+    /** 활동량 입력(하루 1회 제한) **/
     @PostMapping("/activities")
     public ResponseEntity<?> saveActivity(@RequestBody UserInputRequest input) {
         try {
@@ -32,16 +35,30 @@ public class SleepController {
         }
     }
 
-    @PostMapping("/activities/{id}/predict-fatigue")
-    public ResponseEntity<SleepData> predictFatigue(@PathVariable("id") Long id) {
-        SleepData record = sleepService.updateFatiguePrediction(sleepService.findById(id));
-        return ResponseEntity.ok(record);
-    }
+    /** 피로도 예측 - 오늘 날짜 데이터 자동 조회 **/
+    @PostMapping("/activities/predict-fatigue")
+    public ResponseEntity<?> predictFatigueToday(@RequestParam("userId") Long userId) {
+        SleepData todayRecord = sleepService.findTodayRecord(userId, LocalDate.now());
+        if (todayRecord == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("오늘 입력된 데이터가 없습니다.");
+        }
 
-    @PostMapping("/activities/{id}/predict-sleephours")
-    public ResponseEntity<SleepData> predictOptimal(@PathVariable("id") Long id) {
-        SleepData record = sleepService.updateOptimalSleepRange(sleepService.findById(id));
-        return ResponseEntity.ok(record);
+        SleepData updated = sleepService.updateFatiguePrediction(todayRecord);
+        return ResponseEntity.ok(updated);
+    }
+    
+    /** 수면 시간 예측 - 오늘 날짜 데이터 자동 조회 **/
+    @PostMapping("/activities/predict-sleephours")
+    public ResponseEntity<?> predictSleepHoursToday(@RequestParam("userId") Long userId) {
+        SleepData todayRecord = sleepService.findTodayRecord(userId, LocalDate.now());
+        if (todayRecord == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("오늘 입력된 데이터가 없습니다.");
+        }
+
+        SleepData updated = sleepService.updateOptimalSleepRange(todayRecord);
+        return ResponseEntity.ok(updated);
     }
     
     @GetMapping("/recent")
