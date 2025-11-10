@@ -25,6 +25,14 @@
   <select id="findById" resultMap="SleepDataMap">
     SELECT * FROM daily_activities WHERE id = #{id}
   </select>
+  
+   <!-- 오늘 데이터 조회 -->
+  <select id="findTodayRecord" resultMap="SleepDataMap">
+    SELECT * FROM daily_activities
+    WHERE user_id = #{userId}
+      AND date = #{date}
+    LIMIT 1
+  </select>
 	
 	<!--새 기록 삽입-->
   <insert id="insert" useGeneratedKeys="true" keyProperty="id">

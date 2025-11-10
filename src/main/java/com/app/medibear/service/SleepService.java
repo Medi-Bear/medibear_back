@@ -9,11 +9,9 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class SleepService {
@@ -34,19 +32,19 @@ public class SleepService {
                 .build();
     }
 
-    /** 1) 1차 저장 **/
+    /** 1) 활동 데이터 저장 (하루 1회) **/
     public SleepData saveInitialRecord(UserInputRequest input) {
-    	Long userId = input.getUserId();
-    	LocalDate today = LocalDate.now();
-    	
-    	boolean existsToday = sleepMapper.existsTodayRecord(userId, today);
-    	if (existsToday) {
-    		throw new IllegalStateException("오늘은 이미 활동량이 등록되었습니다.");
-    	}
-    	
+        Long userId = input.getUserId();
+        LocalDate today = LocalDate.now();
+
+        boolean existsToday = sleepMapper.existsTodayRecord(userId, today);
+        if (existsToday) {
+            throw new IllegalStateException("오늘은 이미 활동량이 등록되었습니다.");
+        }
+
         SleepData record = new SleepData();
-        record.setUserId(input.getUserId());
-        record.setDate(LocalDate.now());
+        record.setUserId(userId);
+        record.setDate(today);
         record.setSleepHours(input.getSleepHours());
         record.setCaffeineMg(input.getCaffeineMg());
         record.setAlcoholConsumption(input.getAlcoholConsumption());
@@ -58,7 +56,12 @@ public class SleepService {
         return record;
     }
 
-    /** 2) 피로도 예측 **/
+    /** 2) 오늘 데이터 조회 **/
+    public SleepData findTodayRecord(Long userId, LocalDate date) {
+        return sleepMapper.findTodayRecord(userId, date).orElse(null);
+    }
+
+    /** 3) 피로도 예측 **/
     public SleepData updateFatiguePrediction(SleepData record) {
         User user = userService.getUserById(record.getUserId());
         int age = userService.calculateAge(user.getBirthDate());
@@ -82,19 +85,20 @@ public class SleepService {
 
         if (resp == null) throw new IllegalStateException("FastAPI returned null");
 
-        if (resp.get("predicted_sleep_quality") != null)
-            record.setPredictedSleepQuality(((Number) resp.get("predicted_sleep_quality")).doubleValue());
-        if (resp.get("predicted_fatigue_score") != null)
-            record.setPredictedFatigueScore(((Number) resp.get("predicted_fatigue_score")).doubleValue());
-        if (resp.get("condition_level") != null)
-            record.setConditionLevel((String) resp.get("condition_level"));
+        record.setPredictedSleepQuality(
+                ((Number) resp.getOrDefault("predicted_sleep_quality", 0)).doubleValue()
+        );
+        record.setPredictedFatigueScore(
+                ((Number) resp.getOrDefault("predicted_fatigue_score", 0)).doubleValue()
+        );
+        record.setConditionLevel((String) resp.getOrDefault("condition_level", "보통"));
 
         record.setUpdatedAt(LocalDateTime.now());
         sleepMapper.updateFatigue(record);
         return record;
     }
 
-    /** 3) 개인 최적 수면시간 예측 **/
+    /** 4) 개인 최적 수면시간 예측 **/
     public SleepData updateOptimalSleepRange(SleepData record) {
         User user = userService.getUserById(record.getUserId());
         int age = userService.calculateAge(user.getBirthDate());
@@ -118,24 +122,19 @@ public class SleepService {
 
         if (resp == null) throw new IllegalStateException("FastAPI returned null");
 
-        if (resp.get("recommended_sleep_range") != null)
-            record.setRecommendedSleepRange((String) resp.get("recommended_sleep_range"));
+        record.setRecommendedSleepRange(
+                (String) resp.getOrDefault("recommended_sleep_range", "7시간")
+        );
 
         record.setUpdatedAt(LocalDateTime.now());
         sleepMapper.updateOptimal(record);
         return record;
     }
 
-    /** 4) ID로 조회 **/
-    public SleepData findById(Long id) {
-        return sleepMapper.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Record not found: " + id));
-    }
-    
-    /** 5) 최근 7일간의 수면 기록 조회**/
+    /** 5) 최근 7일 기록 **/
     public List<SleepData> getRecentSleepHours(Long userId) {
-    	List<SleepData> list = sleepMapper.getRecentSleepHours(userId);
-    	Collections.reverse(list);
-    	return list;
+        List<SleepData> list = sleepMapper.getRecentSleepHours(userId);
+        Collections.reverse(list);
+        return list;
     }
 }
