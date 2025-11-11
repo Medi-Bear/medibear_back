@@ -3,9 +3,9 @@ spring:
     name: medibear
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/test
+    url: jdbc:postgresql://localhost:5432/sleepdb
     username: postgres
-    password: UserPassword
+    password: "0411"
 
 server:
   port: 8080

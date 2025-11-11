@@ -8,11 +8,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.Map;
 
 @Service
-public class LLMService {
+public class SleepLLMService {
 
     private final WebClient webClient;
 
-    public LLMService(@Value("${cors.fastapi.url}") String baseUrl, WebClient.Builder builder) {
+    public SleepLLMService(@Value("${cors.fastapi.url}") String baseUrl, WebClient.Builder builder) {
         this.webClient = builder.baseUrl(baseUrl).build();
     }
 

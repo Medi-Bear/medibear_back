@@ -1,6 +1,6 @@
 package com.app.medibear.controller;
 
-import com.app.medibear.service.LLMService;
+import com.app.medibear.service.SleepLLMService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,9 +10,9 @@ import java.util.Map;
 @RequestMapping("/chat")
 public class SleepChatController {
 
-    private final LLMService llmService;
+    private final SleepLLMService llmService;
 
-    public SleepChatController(LLMService llmService) {
+    public SleepChatController(SleepLLMService llmService) {
         this.llmService = llmService;
     }
 
