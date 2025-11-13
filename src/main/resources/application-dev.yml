@@ -25,8 +25,9 @@ spring:
 cors:
   allowed:
     origins: "http://localhost:5173"
-  fastapi:
-    url: "http://localhost:8000"
+
+fastapi:
+  url: "http://localhost:8000"
 
 server:
   port: 8080
@@ -35,4 +36,4 @@ server:
   ## jwt 설정
 jwt:
   secret: medibear
-  expiration-time: 10000
+  expiration-time: 1000000000
