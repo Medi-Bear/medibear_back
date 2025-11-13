@@ -38,8 +38,6 @@ public class RefreshTokenController {
     private final GetMemberId getMemberId;
 
 
-
-
     @GetMapping("/api/protected/test")
     public ResponseEntity<String> testEndpoint() {
         return ResponseEntity.ok("Protected test endpoint accessed!");
@@ -55,6 +53,7 @@ public class RefreshTokenController {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
             System.out.println(" 여기 들어왔니?쿠키큌");
+
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("중간에 쿠키가 지워졌습니다.");
         }
         for (int i = 0; i < cookies.length; i++) {
