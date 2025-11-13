@@ -20,6 +20,13 @@ mybatis:
     map-underscore-to-camel-case: true
     jdbc-type-for-null: null
 
+  # supabase
+  atasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres?sslmode=require
+    username: postgres.tyaurnypluxrrqnnbamz
+    password: 4kf6WscvdKVF1ZLH d
+
 cors:
   allowed:
     origins: http://localhost:5173

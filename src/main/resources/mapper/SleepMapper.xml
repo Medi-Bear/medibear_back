@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.app.medibear.mapper.SleepMapper">
+
+  <resultMap id="SleepDataMap" type="com.app.medibear.model.SleepData">
+    <id column="id" property="id"/>
+    <result column="user_id" property="userId"/>
+    <result column="date" property="date"/>
+    <result column="sleep_hours" property="sleepHours"/>
+    <result column="caffeine_mg" property="caffeineMg"/>
+    <result column="alcohol_consumption" property="alcoholConsumption"/>
+    <result column="physical_activity_hours" property="physicalActivityHours"/>
+    <result column="predicted_sleep_quality" property="predictedSleepQuality"/>
+    <result column="predicted_fatigue_score" property="predictedFatigueScore"/>
+    <result column="recommended_sleep_range" property="recommendedSleepRange"/>
+    <result column="condition_level" property="conditionLevel"/>
+    <result column="created_at" property="createdAt"/>
+    <result column="updated_at" property="updatedAt"/>
+  </resultMap>
+
+<!--특정 Id로 조회-->
+  <select id="findById" resultMap="SleepDataMap">
+    SELECT * FROM daily_activities WHERE id = #{id}
+  </select>
+  
+   <!-- 오늘 데이터 조회 -->
+  <select id="findTodayRecord" resultMap="SleepDataMap">
+    SELECT * FROM daily_activities
+    WHERE user_id = #{userId}
+      AND date = #{date}
+    LIMIT 1
+  </select>
+	
+	<!--새 기록 삽입-->
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO daily_activities (
+      user_id, date, sleep_hours, caffeine_mg, alcohol_consumption,
+      physical_activity_hours, predicted_sleep_quality, predicted_fatigue_score,
+      recommended_sleep_range, condition_level, created_at, updated_at
+    )
+    VALUES (
+      #{userId}, #{date}, #{sleepHours}, #{caffeineMg}, #{alcoholConsumption},
+      #{physicalActivityHours}, #{predictedSleepQuality}, #{predictedFatigueScore},
+      #{recommendedSleepRange}, #{conditionLevel}, #{createdAt}, #{updatedAt}
+    )
+  </insert>
+
+	<!--피로도 업데이트-->
+  <update id="updateFatigue">
+    UPDATE daily_activities
+    SET predicted_sleep_quality = #{predictedSleepQuality},
+        predicted_fatigue_score = #{predictedFatigueScore},
+        condition_level = #{conditionLevel},
+        updated_at = NOW()
+    WHERE id = #{id}
+  </update>
+	
+	<!--수면 시간 예측-->
+  <update id="updateOptimal">
+    UPDATE daily_activities
+    SET recommended_sleep_range = #{recommendedSleepRange},
+        updated_at = NOW()
+    WHERE id = #{id}
+  </update>
+  
+    <!-- 💤 최근 7일 수면시간 데이터 조회 -->
+  <select id="getRecentSleepHours" resultType="com.app.medibear.model.SleepData">
+    SELECT *
+    FROM daily_activities
+    WHERE user_id = #{userId}
+    ORDER BY date DESC
+    LIMIT 7
+  </select>
+  
+  <!--오늘 이미 입력된 기록이 있는지 확인-->
+   <select id="existsTodayRecord" resultType="boolean">
+    SELECT COUNT(*) > 0
+    FROM daily_activities
+    WHERE user_id = #{userId}
+      AND date = #{today}
+  </select>
+</mapper>
