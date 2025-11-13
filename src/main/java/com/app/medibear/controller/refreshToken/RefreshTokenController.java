@@ -95,6 +95,7 @@ public class RefreshTokenController {
         System.out.println("memberId = " + memberId);
         //    2-2	Redis에서 해당 유저의 토큰과 일치하는지 확인
         String value = stringRedisTemplate.opsForValue().get(memberId);
+        System.out.println("redis refreshToken값 = " + value);
         if (value != null) {
             if (!refreshToken.equals(value)) {
                 System.out.println(" 리플레시 토큰이 일치하지 않는다는 말 !");

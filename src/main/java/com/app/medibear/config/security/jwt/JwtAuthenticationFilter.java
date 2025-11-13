@@ -51,6 +51,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             ObjectMapper mapper = new ObjectMapper();
             Member user = mapper.readValue(request.getInputStream(), Member.class);
 
+            System.out.println("아이디 " + user.getEmail() + "  비밀번호 =" + user.getPassword());
 //            if (stringRedisTemplate.opsForValue().get(user.getMemberId()) != null){
 //                System.out.println(" 들어오는지 확인!!" );
 //                throw new AuthenticationServiceException("이미 로그인된 계정입니다. 다른 아이디로 로그인하세요.");
@@ -104,7 +105,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         System.out.println("principalDetails.getUsername() = " + principalDetails.getUsername());
         //RSA방식은 아니고 hash암호 방식
         String accessToken = JWT.create()
-                .withExpiresAt(new Date(System.currentTimeMillis() + (jwtProperties.getExpirationTime()/6)))  //토큰 만료시간 60000 기준 1분
+                .withExpiresAt(new Date(System.currentTimeMillis() + (jwtProperties.getExpirationTime())))  //토큰 만료시간 60000 기준 1분
 //                .withClaim("id",principalDetails.getId())  //withClaim은 키 벨류값설
                 .withClaim("memberId", principalDetails.getUsername())
                 .sign(Algorithm.HMAC512(jwtProperties.getSecret()));

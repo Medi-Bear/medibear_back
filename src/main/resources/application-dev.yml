@@ -29,6 +29,8 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 
+
+
   # -------------------------------
   # 🔴 Redis 설정
   # -------------------------------
@@ -54,3 +56,7 @@ server:
   port: 8080
   address: 0.0.0.0
 
+  ## jwt 설정
+jwt:
+  secret: medibear
+  expiration-time: 10000
