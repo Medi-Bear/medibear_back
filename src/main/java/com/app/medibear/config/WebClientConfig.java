@@ -8,7 +8,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
 
-  @Value("${cors.fastapi.url}")
+  @Value("${fastapi.url}")
   private String corsFastApiUrl;
 
   @Bean

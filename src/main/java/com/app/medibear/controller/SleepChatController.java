@@ -16,46 +16,35 @@ public class SleepChatController {
         this.llmService = llmService;
     }
 
-    /**
-     * 일반 대화 (LLM)
-     * POST /chat/message
-     */
+    /** 일반 대화 */
     @PostMapping("/message")
     public ResponseEntity<Map<String, Object>> chat(@RequestBody Map<String, Object> body) {
-        String userId = (String) body.get("user_id"); // ✅ String으로 변경
-        String message = (String) body.get("message");
 
-        String response = llmService.chatGeneral(userId, message); // ✅ LLMService도 String으로 맞춰야 함
+        String email = body.get("email").toString();
+        String message = body.get("message").toString();
+
+        String response = llmService.chatGeneral(email, message);
         return ResponseEntity.ok(Map.of("response", response));
     }
 
-    /**
-     * 일간 리포트
-     * GET /chat/report/daily/{userId}
-     */
-    @GetMapping("/report/daily/{userId}")
-    public ResponseEntity<Map<String, Object>> dailyReport(@PathVariable("userId") String userId) {
-        String report = llmService.getDailyReport(userId);
+    /** 일간 리포트 */
+    @GetMapping("/report/daily/{email}")
+    public ResponseEntity<Map<String, Object>> dailyReport(@PathVariable String email) {
+        String report = llmService.getDailyReport(email);
         return ResponseEntity.ok(Map.of("report", report));
     }
 
-    /**
-     * 주간 리포트
-     * GET /chat/report/weekly/{userId}
-     */
-    @GetMapping("/report/weekly/{userId}")
-    public ResponseEntity<Map<String, Object>> weeklyReport(@PathVariable("userId") String userId) { 
-        String report = llmService.getWeeklyReport(userId);
+    /** 주간 리포트 */
+    @GetMapping("/report/weekly/{email}")
+    public ResponseEntity<Map<String, Object>> weeklyReport(@PathVariable String email) {
+        String report = llmService.getWeeklyReport(email);
         return ResponseEntity.ok(Map.of("report", report));
     }
 
-    /**
-     * 대화 기록 조회
-     * GET /chat/history/{userId}
-     */
-    @GetMapping("/history/{userId}")
-    public ResponseEntity<Map<String, Object>> history(@PathVariable("userId") String userId) { 
-        Map<String, Object> history = llmService.getChatHistory(userId);
+    /** 대화 기록 조회 */
+    @GetMapping("/history/{email}")
+    public ResponseEntity<Map<String, Object>> history(@PathVariable String email) {
+        Map<String, Object> history = llmService.getChatHistory(email);
         return ResponseEntity.ok(history);
     }
 }

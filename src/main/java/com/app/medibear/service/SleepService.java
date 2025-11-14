@@ -1,13 +1,13 @@
 package com.app.medibear.service;
 
 import com.app.medibear.dto.UserInputRequest;
-import com.app.medibear.mapper.SleepMapper;
 import com.app.medibear.model.SleepData;
 import com.app.medibear.model.User;
+import com.app.medibear.repository.SleepDataRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,34 +16,35 @@ import java.util.*;
 @Service
 public class SleepService {
 
-    private final SleepMapper sleepMapper;
+    private final SleepDataRepository sleepDataRepository;
     private final UserService userService;
-    private final WebClient webClient;
+    private final RestTemplate restTemplate;
+    private final String fastApiBaseUrl;
 
     public SleepService(
-            SleepMapper sleepMapper,
+            SleepDataRepository sleepDataRepository,
             UserService userService,
-            @Value("${cors.fastapi.url}") String fastApiBaseUrl
+            @Value("${fastapi.url}") String fastApiBaseUrl
     ) {
-        this.sleepMapper = sleepMapper;
+        this.sleepDataRepository = sleepDataRepository;
         this.userService = userService;
-        this.webClient = WebClient.builder()
-                .baseUrl(fastApiBaseUrl)
-                .build();
+        this.restTemplate = new RestTemplate();
+        this.fastApiBaseUrl = fastApiBaseUrl;
     }
 
-    /** 1️⃣ 활동 데이터 저장 (하루 1회 제한) **/
+    /** 활동량 최초 저장 (email → memberNo 변환) */
     public SleepData saveInitialRecord(UserInputRequest input) {
-        String userId = input.getUserId(); 
+
+        User user = userService.getUserByEmail(input.getEmail());
+        Long memberNo = user.getMemberNo();
         LocalDate today = LocalDate.now();
 
-        boolean existsToday = sleepMapper.existsTodayRecord(userId, today);
-        if (existsToday) {
-            throw new IllegalStateException("오늘은 이미 활동량이 등록되었습니다.");
+        if (sleepDataRepository.existsByMemberNoAndDate(memberNo, today)) {
+            throw new IllegalStateException("오늘 기록은 이미 존재합니다.");
         }
 
         SleepData record = new SleepData();
-        record.setUserId(userId);
+        record.setMemberNo(memberNo);
         record.setDate(today);
         record.setSleepHours(input.getSleepHours());
         record.setCaffeineMg(input.getCaffeineMg());
@@ -52,89 +53,95 @@ public class SleepService {
         record.setCreatedAt(LocalDateTime.now());
         record.setUpdatedAt(LocalDateTime.now());
 
-        sleepMapper.insert(record);
-        return record;
+        return sleepDataRepository.save(record);
     }
 
-    /** 2️⃣ 오늘 데이터 조회 **/
-    public SleepData findTodayRecord(String userId, LocalDate date) { 
-        return sleepMapper.findTodayRecord(userId, date).orElse(null);
+    /** 오늘 기록 찾기 (email → memberNo) */
+    public SleepData findTodayRecord(String email, LocalDate date) {
+
+        User user = userService.getUserByEmail(email);
+        Long memberNo = user.getMemberNo();
+
+        return sleepDataRepository.findByMemberNoAndDate(memberNo, date)
+                .orElse(null);
     }
 
-    /** 3️⃣ 피로도 예측 **/
+    /** 피로도 예측 */
     public SleepData updateFatiguePrediction(SleepData record) {
-        User user = userService.getUserById(record.getUserId()); 
+
+        User user = userService.getUserByMemberNo(record.getMemberNo());
         int age = userService.calculateAge(user.getBirthDate());
-        int genderInt = userService.toGenderInt(user.getGender());
+        int gender = userService.toGenderInt(user.getGender());
 
         Map<String, Object> body = Map.of(
                 "age", age,
-                "gender", genderInt,
+                "gender", gender,
                 "caffeine_mg", record.getCaffeineMg(),
                 "sleep_hours", record.getSleepHours(),
                 "physical_activity_hours", record.getPhysicalActivityHours(),
                 "alcohol_consumption", record.getAlcoholConsumption()
         );
 
-        Map<String, Object> resp = webClient.post()
-                .uri("/sleep/predict-fatigue")
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
-                .block();
+        ResponseEntity<Map> response =
+                restTemplate.postForEntity(
+                        fastApiBaseUrl + "/sleep/predict-fatigue",
+                        body, Map.class
+                );
 
-        if (resp == null) throw new IllegalStateException("FastAPI returned null");
+        Map<String, Object> resp = response.getBody();
+        if (resp == null) throw new IllegalStateException("FastAPI 응답 없음");
 
-        record.setPredictedSleepQuality(
-                ((Number) resp.getOrDefault("predicted_sleep_quality", 0)).doubleValue()
-        );
-        record.setPredictedFatigueScore(
-                ((Number) resp.getOrDefault("predicted_fatigue_score", 0)).doubleValue()
-        );
+        record.setPredictedSleepQuality(((Number) resp.get("predicted_sleep_quality")).doubleValue());
+        record.setPredictedFatigueScore(((Number) resp.get("predicted_fatigue_score")).doubleValue());
         record.setConditionLevel((String) resp.getOrDefault("condition_level", "보통"));
-
         record.setUpdatedAt(LocalDateTime.now());
-        sleepMapper.updateFatigue(record);
-        return record;
+
+        return sleepDataRepository.save(record);
     }
 
-    /** 4️⃣ 개인 최적 수면시간 예측 **/
+    /** 최적 수면시간 예측 */
     public SleepData updateOptimalSleepRange(SleepData record) {
-        User user = userService.getUserById(record.getUserId());
+
+        User user = userService.getUserByMemberNo(record.getMemberNo());
         int age = userService.calculateAge(user.getBirthDate());
-        int genderInt = userService.toGenderInt(user.getGender());
+        int gender = userService.toGenderInt(user.getGender());
 
         Map<String, Object> body = Map.of(
                 "age", age,
-                "gender", genderInt,
+                "gender", gender,
                 "caffeine_mg", record.getCaffeineMg(),
                 "sleep_hours", record.getSleepHours(),
                 "alcohol_consumption", record.getAlcoholConsumption(),
                 "physical_activity_hours", record.getPhysicalActivityHours()
         );
 
-        Map<String, Object> resp = webClient.post()
-                .uri("/sleep/recommend")
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
-                .block();
+        ResponseEntity<Map> response =
+                restTemplate.postForEntity(
+                        fastApiBaseUrl + "/sleep/recommend",
+                        body, Map.class
+                );
 
-        if (resp == null) throw new IllegalStateException("FastAPI returned null");
+        Map<String, Object> resp = response.getBody();
+        if (resp == null) throw new IllegalStateException("FastAPI 응답 없음");
 
-        record.setRecommendedSleepRange(
-                (String) resp.getOrDefault("recommended_sleep_range", "7시간")
-        );
-
+        record.setRecommendedSleepRange((String) resp.get("recommended_sleep_range"));
         record.setUpdatedAt(LocalDateTime.now());
-        sleepMapper.updateOptimal(record);
-        return record;
+
+        return sleepDataRepository.save(record);
     }
 
-    /** 5️⃣ 최근 7일 기록 **/
-    public List<SleepData> getRecentSleepHours(String userId) {
-        List<SleepData> list = sleepMapper.getRecentSleepHours(userId);
+    /** 최근 7일 데이터 (email → memberNo 변환) */
+    public List<SleepData> getRecentSleepHours(String email) {
+
+        User user = userService.getUserByEmail(email);
+        Long memberNo = user.getMemberNo();
+
+        List<SleepData> list =
+                sleepDataRepository.findTop7ByMemberNoOrderByDateDesc(memberNo);
+
         Collections.reverse(list);
         return list;
     }
 }
+
+
