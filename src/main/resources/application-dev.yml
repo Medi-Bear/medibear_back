@@ -3,9 +3,9 @@ spring:
     name: medibear
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/medibear
-    username: myuser
-    password: mypassword
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: rlawjdrb123
     driver-class-name: org.postgresql.Driver
 
   jpa:
