@@ -19,7 +19,7 @@ public class StressLLMServiceImpl implements StressLLMService {
     private final WebClient webClient;
 
     public StressLLMServiceImpl(WebClient.Builder builder,
-                                @Value("${cors.fastapi.url}") String baseUrl) {
+                                @Value("${fastapi.url}") String baseUrl) {
         this.webClient = builder.baseUrl(baseUrl).build();
     }
 
