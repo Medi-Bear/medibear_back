@@ -36,4 +36,4 @@ server:
   ## jwt 설정
 jwt:
   secret: medibear
-  expiration-time: 1000000000
+  expiration-time: 600000
