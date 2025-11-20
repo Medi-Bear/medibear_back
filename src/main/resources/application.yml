@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: dev
+    active: prod
 
 # JSON 본문 크기 허용 설정
 server:
